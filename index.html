@@ -1,0 +1,548 @@
+<!doctype html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cafea pentru toți</title>
+<meta name="theme-color" content="#17757F">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>*,*::before,*::after{box-sizing:border-box}body{margin:0}</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito+Sans:wght@400;600&display=swap">
+<style>
+/* Layout: o coloana ingusta, butonul rotund in mijloc, regula formularului dedesubt.
+   Culorile vin de pe afisul de la aparatul de cafea (verde-albastru) plus maro de cafea. */
+:root {
+  --bg: #EEF6F7;
+  --surface: #FFFFFF;
+  --fg: #12363D;
+  --muted: #4A6D74;
+  --line: #C9DEE1;
+  --teal: #17757F;
+  --teal-press: #115F68;
+  --on-teal: #FFFFFF;
+  --cup: #8A5A3C;
+  --display: 'Fredoka', ui-rounded, 'Segoe UI', sans-serif;
+  --body: 'Nunito Sans', 'Segoe UI', system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0E1F23; --surface: #14292E; --fg: #E3F1F3; --muted: #8FB1B7; --line: #24424A;
+    --teal: #3DB3C3; --teal-press: #2D96A5; --on-teal: #07262B; --cup: #D1A27E;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0E1F23; --surface: #14292E; --fg: #E3F1F3; --muted: #8FB1B7; --line: #24424A;
+  --teal: #3DB3C3; --teal-press: #2D96A5; --on-teal: #07262B; --cup: #D1A27E;
+  color-scheme: dark;
+}
+
+html, body { height: 100%; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--body);
+  font-size: 16px;
+  line-height: 1.5;
+  padding-block: 28px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+main {
+  width: 100%;
+  max-width: 420px;
+  margin-block: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+  text-align: center;
+}
+h1 {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 30px;
+  line-height: 1.15;
+  text-wrap: balance;
+}
+.sub { margin: 4px 0 0; color: var(--muted); }
+
+.big {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: min(250px, 70vw);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--teal);
+  color: var(--on-teal);
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 26px;
+  line-height: 1.1;
+  text-decoration: none;
+  box-shadow: 0 0 0 10px color-mix(in srgb, var(--teal) 18%, transparent);
+  transition: transform .12s ease, background-color .12s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.big:active { transform: scale(.96); background: var(--teal-press); }
+.big:focus-visible { outline: 3px solid var(--fg); outline-offset: 6px; }
+.big svg { width: 84px; height: 84px; }
+.cup-body { fill: var(--on-teal); }
+.cup-handle, .steam { fill: none; stroke: var(--on-teal); stroke-width: 5; stroke-linecap: round; }
+.cup-coffee { fill: var(--cup); }
+
+#status { margin: 0; min-height: 3em; color: var(--muted); }
+#status strong { color: var(--fg); }
+
+.rule {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px 16px;
+  text-align: left;
+  font-size: 15px;
+}
+.rule h2 {
+  margin: 0 0 6px;
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 13px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.rule p { margin: 0; }
+.fallback { font-size: 14px; color: var(--muted); }
+.fallback a { color: var(--teal); font-weight: 600; }
+
+.pay {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 16px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.pay h2 {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 13px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.pay-row { display: flex; gap: 10px; align-items: stretch; flex-wrap: wrap; }
+.pay label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.pay input {
+  flex: 1 1 120px;
+  min-width: 0;
+  font: inherit;
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+  padding: 10px 12px;
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.pay input:focus-visible { outline: 3px solid var(--teal); outline-offset: 1px; }
+.pay-btn {
+  flex: 1 1 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: var(--teal);
+  color: var(--on-teal);
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 18px;
+  text-decoration: none;
+  text-align: center;
+}
+.pay-btn:active { background: var(--teal-press); }
+.pay-btn[aria-disabled="true"] { opacity: .45; pointer-events: none; }
+.pay-btn:focus-visible { outline: 3px solid var(--fg); outline-offset: 3px; }
+#pay-note { margin: 0; font-size: 14px; color: var(--muted); min-height: 2.8em; }
+#pay-note strong { color: var(--fg); }
+.sheet-link { margin: 0; font-size: 14px; color: var(--muted); }
+.sheet-link a { color: var(--teal); font-weight: 600; }
+
+.bal {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.bal h2 {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 13px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.bal-num {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 44px;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.bal-note { margin: 0; font-size: 14px; color: var(--muted); min-height: 1.5em; }
+.bal-note a { color: var(--teal); font-weight: 600; }
+.bal-btn {
+  margin-top: 6px;
+  font: inherit;
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 15px;
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--teal);
+  background: transparent;
+  color: var(--teal);
+  cursor: pointer;
+}
+.bal-btn:active { background: color-mix(in srgb, var(--teal) 14%, transparent); }
+.bal-btn:disabled { opacity: .5; cursor: default; }
+.bal-btn:focus-visible { outline: 3px solid var(--fg); outline-offset: 3px; }
+.bal-btn[hidden], .bal[hidden] { display: none; }
+.bal-meta { margin: 0; font-size: 14px; color: var(--muted); }
+.bal-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 6px; }
+.bal-btn.solid { background: var(--teal); color: var(--on-teal); }
+.bal-btn.solid:active { background: var(--teal-press); }
+.confirm { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 6px; padding: 12px; width: 100%; border: 1px dashed var(--teal); border-radius: 10px; }
+.confirm[hidden] { display: none; }
+.confirm p { margin: 0; font-weight: 600; }
+.set { width: 100%; margin-top: 8px; text-align: left; font-size: 14px; color: var(--muted); }
+.set summary { cursor: pointer; text-align: center; }
+.set-grid { display: grid; grid-template-columns: 1fr auto; gap: 8px 10px; align-items: center; margin-top: 10px; }
+.set-grid input { width: 96px; font: inherit; font-size: 16px; padding: 6px 8px; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; text-align: right; font-variant-numeric: tabular-nums; }
+.set-grid input:focus-visible { outline: 3px solid var(--teal); outline-offset: 1px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .big { transition: none; }
+}
+
+main[hidden] { display: none; }
+.names { width: 100%; display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
+.name-btn {
+  font: inherit;
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 20px;
+  padding: 14px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--fg);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.name-btn:active { background: var(--teal); color: var(--on-teal); border-color: var(--teal); }
+.name-btn[aria-current="true"] { border-color: var(--teal); box-shadow: inset 0 0 0 2px var(--teal); }
+.name-btn:focus-visible { outline: 3px solid var(--fg); outline-offset: 3px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.new-name { width: 100%; text-align: left; display: flex; flex-direction: column; gap: 8px; }
+.new-name h2 { margin: 0; font-family: var(--display); font-weight: 500; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.new-name .row { display: flex; gap: 10px; flex-wrap: wrap; }
+.new-name input { flex: 1 1 150px; min-width: 0; font: inherit; font-size: 18px; padding: 10px 12px; color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.new-name input:focus-visible { outline: 3px solid var(--teal); outline-offset: 1px; }
+.new-name .hint { margin: 0; font-size: 14px; color: var(--muted); min-height: 1.4em; }
+.who-line { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
+.linkbtn { font: inherit; font-size: 14px; background: none; border: 0; padding: 0; color: var(--teal); font-weight: 600; text-decoration: underline; cursor: pointer; }
+.linkbtn:focus-visible { outline: 3px solid var(--fg); outline-offset: 3px; }
+</style>
+
+<main id="pick" hidden>
+  <header>
+    <h1>Cine ești?</h1>
+    <p class="sub">Alege-ți numele o singură dată. Rămâne salvat pe acest telefon. Atenție să fie al tău: cafelele se trec pe numele ales.</p>
+  </header>
+  <div class="names" id="names"></div>
+  <form class="new-name" id="new-form" autocomplete="off">
+    <h2>Nu ești în listă?</h2>
+    <div class="row">
+      <label for="new-in" class="sr">Numele tău</label>
+      <input id="new-in" type="text" maxlength="40" placeholder="Scrie-ți numele" enterkeyhint="go">
+      <button type="submit" class="bal-btn solid" id="new-go">Continuă</button>
+    </div>
+    <p class="hint" id="new-hint">Scrie-ți numele așa cum vrei să apară în listă. Se salvează pe acest telefon.</p>
+  </form>
+</main>
+
+<main id="app" hidden>
+  <header>
+    <h1>Salut, <span id="who"></span>!</h1>
+    <p class="sub">O apăsare = o cafea.</p>
+    <p class="who-line">Nu ești tu? <button type="button" class="linkbtn" id="change-name">Schimbă numele</button></p>
+  </header>
+
+  <a id="cafea" class="big" target="_blank" rel="noopener" href="#">
+    <svg viewBox="0 0 96 96" aria-hidden="true">
+      <path class="steam" d="M34 22c-4-5 4-8 0-14M48 22c-4-5 4-8 0-14M62 22c-4-5 4-8 0-14"/>
+      <path class="cup-body" d="M16 36h58v22a22 22 0 0 1-22 22H38A22 22 0 0 1 16 58z"/>
+      <ellipse class="cup-coffee" cx="45" cy="36" rx="29" ry="5"/>
+      <path class="cup-handle" d="M74 44h4a9 9 0 0 1 0 18h-6"/>
+      <rect class="cup-body" x="26" y="84" width="38" height="5" rx="2.5"/>
+    </svg>
+    <span>Am băut<br>o cafea</span>
+  </a>
+
+  <p id="status" role="status" aria-live="polite">Apasă butonul după ce ai băut cafeaua.</p>
+
+  <section class="bal" aria-labelledby="sbal-h">
+    <h2 id="sbal-h">Cât mai ai de plătit</h2>
+    <p class="bal-num" id="sbal-num" aria-live="polite">…</p>
+    <p class="bal-meta" id="sbal-note" role="status">Se citește foaia…</p>
+    <div class="bal-actions">
+      <button class="bal-btn" id="sbal-refresh" type="button">Actualizează</button>
+      <button class="bal-btn" id="sbal-all" type="button">Plătesc tot restul</button>
+    </div>
+  </section>
+
+  <section class="pay" aria-labelledby="pay-h">
+    <h2 id="pay-h">Am pus bani în pușculiță</h2>
+    <div class="pay-row">
+      <label for="suma">Suma pusă, în lei</label>
+      <input id="suma" type="text" inputmode="decimal" autocomplete="off" placeholder="Suma (lei)">
+      <a id="pay-btn" class="pay-btn" target="_blank" rel="noopener" aria-disabled="true" href="#">Trimite plata</a>
+    </div>
+    <p id="pay-note" role="status" aria-live="polite">Scrie suma pusă și apasă „Trimite plata". Se scade din ce ai de plătit.</p>
+  </section>
+
+  <p class="fallback">
+    Nu a mers? <a id="fallback-link" href="#" target="_blank" rel="noopener">Deschide formularul cu numele tău deja ales</a> și apasă Trimite.
+  </p>
+</main>
+
+<script>
+(function () {
+  var NAMES = ['Sorin', 'Dobi', 'Paula', 'Sebi', 'Razvan', 'Mircea', 'Emil', 'Bogdan', 'Adrian'];
+  var COFFEE_FORM = 'https://docs.google.com/forms/d/e/1FAIpQLSer2Jnl_rl8swZVKM9ebf-cucb_jam6VjuM7WgVqCONHBWLtA';
+  var COFFEE_ENTRY = 'entry.1105235054';   // lista de nume fixe
+  var COFFEE_OCC = 'entry.1952176173';     // nume scris de cei care nu sunt in lista
+  var PAY_FORM = 'https://docs.google.com/forms/d/e/1FAIpQLSfO4OqBRnaUPEMQ0GQQvL5Ka20ypGWVpLx_vNRgeGM8tvkXEA/formResponse';
+  var PAY_WHO = 'entry.1727377896', PAY_SUM = 'entry.1801979880';
+  var SHEET_ID = '1Fgz-qZ90S1pMkVsiZnvkLulzrvlqyIOoxDVe4b7vQ9c';
+  var SHEET_CSV = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:csv&sheet=plati';
+  var NKEY = 'cafea-nume', KEY = 'cafea-ultima-apasare', PAY_KEY = 'cafea-ultima-plata';
+
+  var $ = function (id) { return document.getElementById(id); };
+  var pickEl = $('pick'), appEl = $('app'), namesEl = $('names');
+  var btn = $('cafea'), st = $('status');
+  var NAME = null;
+  var mem = {}; // rezerva daca localStorage nu merge (de ex. fereastra privata)
+
+  function sget(k) { try { var v = localStorage.getItem(k); return v === null ? (mem[k] || null) : v; } catch (e) { return mem[k] || null; } }
+  function sset(k, v) { mem[k] = v; try { localStorage.setItem(k, v); } catch (e) {} }
+  function jget(k) { try { return JSON.parse(sget(k) || 'null'); } catch (e) { return null; } }
+  function hhmm(t) { return new Date(t).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' }); }
+  function sameDay(a, b) { return new Date(a).toDateString() === new Date(b).toDateString(); }
+  function r2(x) { return Math.round(x * 100) / 100; }
+  function fmt(x) { return (x < 0 ? '-' : '') + Math.abs(r2(x)).toLocaleString('ro-RO', { maximumFractionDigits: 2 }); }
+  function isFix(n) { return NAMES.indexOf(n) >= 0; }
+  function cleanName(raw) { return String(raw).replace(/[\u0000-\u001f<>]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 40); }
+
+  // ---- Alegerea numelui ----
+  NAMES.forEach(function (n) {
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'name-btn'; b.textContent = n; b.setAttribute('data-n', n);
+    b.addEventListener('click', function () { sset(NKEY, n); applyName(n); });
+    namesEl.appendChild(b);
+  });
+  function showPicker() {
+    appEl.hidden = true; pickEl.hidden = false;
+    Array.prototype.forEach.call(namesEl.children, function (b) {
+      if (b.getAttribute('data-n') === NAME) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current');
+    });
+    window.scrollTo(0, 0);
+  }
+  $('change-name').addEventListener('click', showPicker);
+  $('new-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var n = cleanName($('new-in').value), hint = $('new-hint');
+    if (n.length < 2) { hint.textContent = 'Scrie-ți numele (cel puțin 2 litere).'; return; }
+    for (var i = 0; i < NAMES.length; i++) if (NAMES[i].toLowerCase() === n.toLowerCase()) n = NAMES[i];
+    sset(NKEY, n); $('new-in').value = ''; applyName(n);
+  });
+
+  // ---- Soldul din foaia comuna (citit fara cont, foaia e publica prin link) ----
+  var sNum = $('sbal-num'), sNote = $('sbal-note'), sRefresh = $('sbal-refresh'), sAll = $('sbal-all');
+  var input = $('suma'), payBtn = $('pay-btn'), payNote = $('pay-note');
+  var sheetRest = null, sheetBusy = false, sheetAt = 0;
+
+  function parseCsv(t) {
+    var rows = [], row = [], f = '', q = false;
+    for (var i = 0; i < t.length; i++) {
+      var c = t.charAt(i);
+      if (q) { if (c === '"') { if (t.charAt(i + 1) === '"') { f += '"'; i++; } else q = false; } else f += c; }
+      else if (c === '"') q = true;
+      else if (c === ',') { row.push(f); f = ''; }
+      else if (c === '\n' || c === '\r') { if (c === '\r' && t.charAt(i + 1) === '\n') i++; row.push(f); rows.push(row); row = []; f = ''; }
+      else f += c;
+    }
+    if (f !== '' || row.length) { row.push(f); rows.push(row); }
+    return rows;
+  }
+  function num(x) { var v = parseFloat(String(x).replace(/\s/g, '').replace(',', '.')); return isNaN(v) ? null : v; }
+  function idxOf(cells, re) { for (var i = 0; i < cells.length; i++) if (re.test(cells[i])) return i; return -1; }
+  // Fiecare tabel din foaie are propriul rand de antet; il recunoastem dupa "Cafele" + "Rest de plata".
+  function findRow(rows, name) {
+    var cols = null, target = name.toLowerCase();
+    for (var r = 0; r < rows.length; r++) {
+      var cells = rows[r].map(function (c) { return c.trim(); });
+      var iRest = idxOf(cells, /^Rest de pl/i), iCaf = idxOf(cells, /^Cafele/i);
+      if (iRest >= 0 && iCaf >= 0) {
+        var iTip = idxOf(cells, /^Tip$/i);
+        cols = { name: iTip > 0 ? iTip - 1 : 1, caf: iCaf, tot: idxOf(cells, /^Total de Pl/i), rest: iRest };
+        continue;
+      }
+      if (cols && cells[cols.name] && cells[cols.name].toLowerCase() === target) {
+        var rest = num(cells[cols.rest]);
+        if (rest === null) continue;
+        return { caf: num(cells[cols.caf]), tot: cols.tot >= 0 ? num(cells[cols.tot]) : null, rest: rest };
+      }
+    }
+    return null;
+  }
+  function loadSheet(manual) {
+    if (!NAME || sheetBusy) return;
+    sheetBusy = true;
+    if (manual) { sRefresh.disabled = true; sNote.textContent = 'Se citește foaia…'; }
+    var ctl = (typeof AbortController === 'function') ? new AbortController() : null;
+    var timer = setTimeout(function () { if (ctl) ctl.abort(); }, 12000);
+    var forName = NAME;
+    fetch(SHEET_CSV, ctl ? { signal: ctl.signal, cache: 'no-store' } : { cache: 'no-store' }).then(function (r) {
+      if (!r.ok) throw new Error('http ' + r.status);
+      return r.text();
+    }).then(function (t) {
+      if (forName !== NAME) return;
+      var row = findRow(parseCsv(t), NAME);
+      sheetAt = Date.now();
+      if (!row) {
+        sheetRest = null; sNum.textContent = '—';
+        sNote.textContent = 'Nu ești încă în foaie. Apari după prima cafea trimisă în formular.';
+        return;
+      }
+      sheetRest = row.rest;
+      sNum.textContent = fmt(row.rest) + ' lei';
+      var bits = [];
+      if (row.caf !== null) bits.push(row.caf + (row.caf === 1 ? ' cafea' : ' cafele'));
+      if (row.tot !== null) { bits.push('total ' + fmt(row.tot) + ' lei'); bits.push('plătit ' + fmt(row.tot - row.rest) + ' lei'); }
+      sNote.textContent = bits.join(' · ') + (bits.length ? '. ' : '') + (row.rest < 0 ? 'Minus = ai pus mai mult decât datorai. ' : '') + 'Citit la ' + hhmm(sheetAt) + '. După o apăsare, foaia se actualizează în câteva secunde.';
+    }).catch(function () {
+      if (forName !== NAME) return;
+      if (sheetRest === null) sNum.textContent = '—';
+      sNote.textContent = sheetRest === null ? 'Nu am putut citi foaia acum. Verifică internetul și apasă „Actualizează".' : 'Nu am putut reciti foaia. Valoarea de mai sus poate fi veche.';
+    }).then(function () {
+      clearTimeout(timer); sheetBusy = false; sRefresh.disabled = false;
+    });
+  }
+  sRefresh.addEventListener('click', function () { loadSheet(true); });
+  sAll.addEventListener('click', function () {
+    if (sheetRest !== null && sheetRest > 0) {
+      input.value = String(r2(sheetRest)).replace('.', ',');
+      refreshPay();
+      input.scrollIntoView({ block: 'center' });
+    } else {
+      sNote.textContent = sheetRest === null ? 'Soldul nu e citit încă.' : 'Nu ai nimic de plătit acum.';
+    }
+  });
+  document.addEventListener('visibilitychange', function () {
+    // la intoarcerea in aplicatie (de ex. dupa confirmarea Google) reciteste foaia
+    if (!document.hidden && NAME && !appEl.hidden && Date.now() - sheetAt > 8000) loadSheet(false);
+  });
+
+  // ---- Plata ----
+  var PAY_DEFAULT = payNote.textContent;
+  function parseSum(raw) {
+    var s = String(raw).trim().replace(',', '.');
+    if (!/^\d+(\.\d{1,2})?$/.test(s)) return null;
+    var n = parseFloat(s);
+    return n > 0 && n <= 10000 ? s : null;
+  }
+  function refreshPay() {
+    var s = parseSum(input.value);
+    if (s && NAME) {
+      payBtn.setAttribute('aria-disabled', 'false');
+      payBtn.href = PAY_FORM + '?' + PAY_WHO + '=' + encodeURIComponent(NAME) + '&' + PAY_SUM + '=' + encodeURIComponent(s) + '&submit=Submit';
+      payNote.textContent = '';
+      var b = document.createElement('strong'); b.textContent = s + ' lei';
+      payNote.appendChild(document.createTextNode('Se trimit ')); payNote.appendChild(b);
+      payNote.appendChild(document.createTextNode(' pe numele ' + NAME + '.'));
+    } else {
+      payBtn.setAttribute('aria-disabled', 'true');
+      payBtn.href = '#';
+      payNote.textContent = input.value.trim() ? 'Scrie o sumă validă, de exemplu 10 sau 12.5.' : PAY_DEFAULT;
+    }
+  }
+  input.addEventListener('input', refreshPay);
+  payBtn.addEventListener('click', function (e) {
+    var s = parseSum(input.value), now = Date.now(), prev = jget(PAY_KEY);
+    if (!s || (prev && now - prev.t < 5000)) { e.preventDefault(); return; }
+    sset(PAY_KEY, JSON.stringify({ t: now, s: s }));
+    payNote.textContent = 'S-a deschis o filă cu confirmarea Google pentru ' + s + ' lei. Dacă scrie că răspunsul a fost înregistrat, suma e trecută. Apăsat la ' + hhmm(now) + '. Soldul se actualizează în câteva secunde.';
+    input.value = '';
+    setTimeout(function () { payBtn.setAttribute('aria-disabled', 'true'); payBtn.href = '#'; }, 300);
+  });
+
+  // ---- Butonul de cafea ----
+  btn.addEventListener('click', function (e) {
+    var now = Date.now(), prev = jget(KEY);
+    if (!NAME || (prev && now - prev.t < 5000)) {
+      e.preventDefault();
+      if (NAME) st.textContent = 'Așteaptă câteva secunde, ca să nu trimiți două cafele din greșeală.';
+      return;
+    }
+    sset(KEY, JSON.stringify({ t: now }));
+    st.textContent = 'S-a deschis o filă nouă cu confirmarea Google. Dacă scrie că răspunsul a fost înregistrat, ești trecut la cafea. Apăsat la ' + hhmm(now) + '.';
+  });
+
+  // ---- Pornire / schimbare nume ----
+  function applyName(n) {
+    NAME = n;
+    $('who').textContent = n;
+    var q = (isFix(n) ? COFFEE_ENTRY : COFFEE_OCC) + '=' + encodeURIComponent(n);
+    btn.href = COFFEE_FORM + '/formResponse?' + q + '&submit=Submit';
+    $('fallback-link').href = COFFEE_FORM + '/viewform?usp=pp_url&' + q;
+    input.value = ''; refreshPay();
+    var last = jget(KEY);
+    st.textContent = (last && sameDay(last.t, Date.now()))
+      ? 'Ultima apăsare de pe acest telefon: ' + hhmm(last.t) + '. Nu poți ști de aici dacă s-a înregistrat, vezi confirmarea Google.'
+      : 'Apasă butonul după ce ai băut cafeaua.';
+    sheetRest = null; sNum.textContent = '…'; sNote.textContent = 'Se citește foaia…';
+    pickEl.hidden = true; appEl.hidden = false;
+    window.scrollTo(0, 0);
+    loadSheet(false);
+  }
+  var saved = sget(NKEY);
+  if (saved && cleanName(saved).length >= 2) applyName(cleanName(saved)); else showPicker();
+})();
+</script>
+<script>if("serviceWorker"in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})})}</script>
+</body>
+</html>
