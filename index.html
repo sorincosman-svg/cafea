@@ -103,6 +103,17 @@ h1 {
 .cup-handle, .steam { fill: none; stroke: var(--on-teal); stroke-width: 5; stroke-linecap: round; }
 .cup-coffee { fill: var(--cup); }
 
+/* fața vesela a cănii, apare după ce s-a trimis cafeaua */
+.face { display: none; }
+.face-eye, .face-mouth { fill: none; stroke: var(--teal); stroke-width: 4; stroke-linecap: round; }
+.face-cheek { fill: var(--teal); opacity: .28; }
+.big.done .face { display: inline; }
+.big.done svg { width: 112px; height: 112px; animation: hop .6s ease-out; }
+.big.done .steam { animation: steam 1.6s ease-in-out infinite; }
+.big.done:disabled { opacity: 1; }
+@keyframes hop { 0% { transform: scale(.8) rotate(-6deg); } 45% { transform: scale(1.14) rotate(4deg); } 70% { transform: scale(.97) rotate(-2deg); } 100% { transform: none; } }
+@keyframes steam { 0%, 100% { transform: translateY(0); opacity: 1; } 50% { transform: translateY(-3px); opacity: .55; } }
+
 #status { margin: 0; min-height: 3em; color: var(--muted); }
 #status strong { color: var(--fg); }
 
@@ -251,6 +262,7 @@ h1 {
 
 @media (prefers-reduced-motion: reduce) {
   .big { transition: none; }
+  .big.done svg, .big.done .steam { animation: none; }
 }
 
 main[hidden] { display: none; }
@@ -314,8 +326,14 @@ main[hidden] { display: none; }
       <ellipse class="cup-coffee" cx="45" cy="36" rx="29" ry="5"/>
       <path class="cup-handle" d="M74 44h4a9 9 0 0 1 0 18h-6"/>
       <rect class="cup-body" x="26" y="84" width="38" height="5" rx="2.5"/>
+      <g class="face">
+        <path class="face-eye" d="M30 55q4-6 8 0M52 55q4-6 8 0"/>
+        <path class="face-mouth" d="M34 64q11 11 22 0"/>
+        <circle class="face-cheek" cx="27" cy="63" r="3.5"/>
+        <circle class="face-cheek" cx="63" cy="63" r="3.5"/>
+      </g>
     </svg>
-    <span>Am băut<br>o cafea</span>
+    <span id="cafea-txt">Am băut<br>o cafea</span>
   </button>
 
   <p id="status" role="status" aria-live="polite">Apasă butonul după ce ai băut cafeaua.</p>
@@ -550,6 +568,20 @@ main[hidden] { display: none; }
   });
 
   // ---- Butonul de cafea ----
+  var IDLE_TXT = 'Am băut<br>o cafea', cheerTimer = null, lastCheer = -1;
+  var CHEERS = ['Poftă<br>bună!', 'Poftă la<br>cafea!', 'Savureaz-o!', 'O pauză<br>binemeritată!', 'Să-ți<br>priască!', 'Zi faină<br>în continuare!', 'Energie<br>la maxim!'];
+  function cheerOff() {
+    clearTimeout(cheerTimer); cheerTimer = null;
+    btn.classList.remove('done'); $('cafea-txt').innerHTML = IDLE_TXT;
+  }
+  function cheerOn() {
+    var i; do { i = Math.floor(Math.random() * CHEERS.length); } while (i === lastCheer && CHEERS.length > 1);
+    lastCheer = i;
+    clearTimeout(cheerTimer);
+    btn.classList.remove('done'); void btn.offsetWidth; // repornește animația
+    btn.classList.add('done'); $('cafea-txt').innerHTML = CHEERS[i];
+    cheerTimer = setTimeout(cheerOff, 7000);
+  }
   btn.addEventListener('click', function () {
     var now = Date.now(), prev = jget(KEY);
     if (!NAME || sending) return;
@@ -560,6 +592,7 @@ main[hidden] { display: none; }
     postForm(COFFEE_FORM + '/formResponse', f).then(function () {
       var t = Date.now();
       sset(KEY, JSON.stringify({ t: t }));
+      cheerOn();
       st.textContent = 'Trimis la ' + hhmm(t) + '. Verific în foaie…';
       return pollSheet(function () { return lastRow && (before === null || lastRow.caf > before); }).then(function (ok) {
         if (ok && before !== null) st.textContent = '✓ Înregistrat la ' + hhmm(t) + '. Ai ' + lastRow.caf + (lastRow.caf === 1 ? ' cafea' : ' cafele') + ' în foaie.';
@@ -573,7 +606,7 @@ main[hidden] { display: none; }
 
   // ---- Pornire / schimbare nume ----
   function applyName(n) {
-    NAME = n;
+    NAME = n; cheerOff();
     $('who').textContent = n;
     var q = (isFix(n) ? COFFEE_ENTRY : COFFEE_OCC) + '=' + encodeURIComponent(n);
     $('fallback-link').href = COFFEE_FORM + '/viewform?usp=pp_url&' + q;
