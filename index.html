@@ -89,6 +89,9 @@ h1 {
   font-size: 26px;
   line-height: 1.1;
   text-decoration: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
   box-shadow: 0 0 0 10px color-mix(in srgb, var(--teal) 18%, transparent);
   transition: transform .12s ease, background-color .12s ease;
   -webkit-tap-highlight-color: transparent;
@@ -174,7 +177,10 @@ h1 {
   font-size: 18px;
   text-decoration: none;
   text-align: center;
+  border: 0;
+  cursor: pointer;
 }
+.big:disabled { opacity: .75; cursor: default; }
 .pay-btn:active { background: var(--teal-press); }
 .pay-btn[aria-disabled="true"] { opacity: .45; pointer-events: none; }
 .pay-btn:focus-visible { outline: 3px solid var(--fg); outline-offset: 3px; }
@@ -301,7 +307,7 @@ main[hidden] { display: none; }
     <p class="who-line">Nu ești tu? <button type="button" class="linkbtn" id="change-name">Schimbă numele</button></p>
   </header>
 
-  <a id="cafea" class="big" target="_blank" rel="noopener" href="#">
+  <button id="cafea" class="big" type="button">
     <svg viewBox="0 0 96 96" aria-hidden="true">
       <path class="steam" d="M34 22c-4-5 4-8 0-14M48 22c-4-5 4-8 0-14M62 22c-4-5 4-8 0-14"/>
       <path class="cup-body" d="M16 36h58v22a22 22 0 0 1-22 22H38A22 22 0 0 1 16 58z"/>
@@ -310,7 +316,7 @@ main[hidden] { display: none; }
       <rect class="cup-body" x="26" y="84" width="38" height="5" rx="2.5"/>
     </svg>
     <span>Am băut<br>o cafea</span>
-  </a>
+  </button>
 
   <p id="status" role="status" aria-live="polite">Apasă butonul după ce ai băut cafeaua.</p>
 
@@ -329,7 +335,7 @@ main[hidden] { display: none; }
     <div class="pay-row">
       <label for="suma">Suma pusă, în lei</label>
       <input id="suma" type="text" inputmode="decimal" autocomplete="off" placeholder="Suma (lei)">
-      <a id="pay-btn" class="pay-btn" target="_blank" rel="noopener" aria-disabled="true" href="#">Trimite plata</a>
+      <button id="pay-btn" class="pay-btn" type="button" aria-disabled="true">Trimite plata</button>
     </div>
     <p id="pay-note" role="status" aria-live="polite">Scrie suma pusă și apasă „Trimite plata". Se scade din ce ai de plătit.</p>
   </section>
@@ -393,7 +399,7 @@ main[hidden] { display: none; }
   // ---- Soldul din foaia comuna (citit fara cont, foaia e publica prin link) ----
   var sNum = $('sbal-num'), sNote = $('sbal-note'), sRefresh = $('sbal-refresh'), sAll = $('sbal-all');
   var input = $('suma'), payBtn = $('pay-btn'), payNote = $('pay-note');
-  var sheetRest = null, sheetBusy = false, sheetAt = 0;
+  var sheetRest = null, sheetBusy = false, sheetAt = 0, lastRow = null;
 
   function parseCsv(t) {
     var rows = [], row = [], f = '', q = false;
@@ -430,19 +436,19 @@ main[hidden] { display: none; }
     return null;
   }
   function loadSheet(manual) {
-    if (!NAME || sheetBusy) return;
+    if (!NAME || sheetBusy) return Promise.resolve();
     sheetBusy = true;
     if (manual) { sRefresh.disabled = true; sNote.textContent = 'Se citește foaia…'; }
     var ctl = (typeof AbortController === 'function') ? new AbortController() : null;
     var timer = setTimeout(function () { if (ctl) ctl.abort(); }, 12000);
     var forName = NAME;
-    fetch(SHEET_CSV, ctl ? { signal: ctl.signal, cache: 'no-store' } : { cache: 'no-store' }).then(function (r) {
+    return fetch(SHEET_CSV, ctl ? { signal: ctl.signal, cache: 'no-store' } : { cache: 'no-store' }).then(function (r) {
       if (!r.ok) throw new Error('http ' + r.status);
       return r.text();
     }).then(function (t) {
       if (forName !== NAME) return;
       var row = findRow(parseCsv(t), NAME);
-      sheetAt = Date.now();
+      sheetAt = Date.now(); lastRow = row;
       if (!row) {
         sheetRest = null; sNum.textContent = '—';
         sNote.textContent = 'Nu ești încă în foaie. Apari după prima cafea trimisă în formular.';
@@ -477,6 +483,29 @@ main[hidden] { display: none; }
     if (!document.hidden && NAME && !appEl.hidden && Date.now() - sheetAt > 8000) loadSheet(false);
   });
 
+  // ---- Trimitere in formulare, fara a parasi pagina ----
+  var sending = false;
+  function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  function postForm(url, fields) {
+    var body = new URLSearchParams();
+    Object.keys(fields).forEach(function (k) { body.append(k, fields[k]); });
+    var ctl = (typeof AbortController === 'function') ? new AbortController() : null;
+    var timer = setTimeout(function () { if (ctl) ctl.abort(); }, 15000);
+    // "no-cors": raspunsul Google nu poate fi citit, dar cererea ajunge; confirmarea o luam apoi din foaie
+    return fetch(url, { method: 'POST', mode: 'no-cors', body: body, cache: 'no-store', signal: ctl ? ctl.signal : undefined })
+      .then(function (r) { clearTimeout(timer); return r; }, function (e) { clearTimeout(timer); throw e; });
+  }
+  // asteapta (max ~15 s) ca foaia sa arate schimbarea; intoarce true daca a aparut
+  function pollSheet(changed) {
+    var i = 0;
+    function step() {
+      if (i >= 5) return Promise.resolve(false);
+      i++;
+      return sleep(3000).then(function () { return loadSheet(false); }).then(function () { return changed() ? true : step(); });
+    }
+    return step();
+  }
+
   // ---- Plata ----
   var PAY_DEFAULT = payNote.textContent;
   function parseSum(raw) {
@@ -489,37 +518,57 @@ main[hidden] { display: none; }
     var s = parseSum(input.value);
     if (s && NAME) {
       payBtn.setAttribute('aria-disabled', 'false');
-      payBtn.href = PAY_FORM + '?' + PAY_WHO + '=' + encodeURIComponent(NAME) + '&' + PAY_SUM + '=' + encodeURIComponent(s) + '&submit=Submit';
       payNote.textContent = '';
       var b = document.createElement('strong'); b.textContent = s + ' lei';
       payNote.appendChild(document.createTextNode('Se trimit ')); payNote.appendChild(b);
       payNote.appendChild(document.createTextNode(' pe numele ' + NAME + '.'));
     } else {
       payBtn.setAttribute('aria-disabled', 'true');
-      payBtn.href = '#';
       payNote.textContent = input.value.trim() ? 'Scrie o sumă validă, de exemplu 10 sau 12.5.' : PAY_DEFAULT;
     }
   }
   input.addEventListener('input', refreshPay);
-  payBtn.addEventListener('click', function (e) {
+  payBtn.addEventListener('click', function () {
     var s = parseSum(input.value), now = Date.now(), prev = jget(PAY_KEY);
-    if (!s || (prev && now - prev.t < 5000)) { e.preventDefault(); return; }
-    sset(PAY_KEY, JSON.stringify({ t: now, s: s }));
-    payNote.textContent = 'S-a deschis o filă cu confirmarea Google pentru ' + s + ' lei. Dacă scrie că răspunsul a fost înregistrat, suma e trecută. Apăsat la ' + hhmm(now) + '. Soldul se actualizează în câteva secunde.';
-    input.value = '';
-    setTimeout(function () { payBtn.setAttribute('aria-disabled', 'true'); payBtn.href = '#'; }, 300);
+    if (!s || !NAME || sending || payBtn.getAttribute('aria-disabled') === 'true') return;
+    if (prev && now - prev.t < 5000) { payNote.textContent = 'Așteaptă câteva secunde, ca să nu trimiți plata de două ori.'; return; }
+    sending = true; payBtn.setAttribute('aria-disabled', 'true'); payNote.textContent = 'Se trimite…';
+    var before = lastRow ? r2(lastRow.rest) : null, amount = parseFloat(s);
+    var f = {}; f[PAY_WHO] = NAME; f[PAY_SUM] = s; f.fvv = '1'; f.pageHistory = '0';
+    postForm(PAY_FORM, f).then(function () {
+      sset(PAY_KEY, JSON.stringify({ t: Date.now(), s: s }));
+      input.value = '';
+      payNote.textContent = 'Plata de ' + s + ' lei a fost trimisă. Verific în foaie…';
+      return pollSheet(function () { return lastRow && before !== null && r2(lastRow.rest) !== before; }).then(function (ok) {
+        if (ok) payNote.textContent = '✓ Plata de ' + s + ' lei e înregistrată. Mai ai de plătit ' + fmt(lastRow.rest) + ' lei.';
+        else if (before === null) payNote.textContent = 'Plata de ' + s + ' lei a fost trimisă. Soldul apare în foaie după prima cafea.';
+        else payNote.textContent = 'Plata de ' + s + ' lei a fost trimisă, dar nu s-a văzut încă în foaie. Apasă „Actualizează" peste câteva secunde.';
+      });
+    }, function () {
+      payNote.textContent = '✗ Nu s-a trimis. Verifică internetul și apasă din nou.';
+    }).then(function () { sending = false; payBtn.setAttribute('aria-disabled', parseSum(input.value) ? 'false' : 'true'); });
   });
 
   // ---- Butonul de cafea ----
-  btn.addEventListener('click', function (e) {
+  btn.addEventListener('click', function () {
     var now = Date.now(), prev = jget(KEY);
-    if (!NAME || (prev && now - prev.t < 5000)) {
-      e.preventDefault();
-      if (NAME) st.textContent = 'Așteaptă câteva secunde, ca să nu trimiți două cafele din greșeală.';
-      return;
-    }
-    sset(KEY, JSON.stringify({ t: now }));
-    st.textContent = 'S-a deschis o filă nouă cu confirmarea Google. Dacă scrie că răspunsul a fost înregistrat, ești trecut la cafea. Apăsat la ' + hhmm(now) + '.';
+    if (!NAME || sending) return;
+    if (prev && now - prev.t < 5000) { st.textContent = 'Așteaptă câteva secunde, ca să nu trimiți două cafele din greșeală.'; return; }
+    sending = true; btn.disabled = true; st.textContent = 'Se trimite…';
+    var before = lastRow ? lastRow.caf : null;
+    var f = {}; f[isFix(NAME) ? COFFEE_ENTRY : COFFEE_OCC] = NAME; f.fvv = '1'; f.pageHistory = '0';
+    postForm(COFFEE_FORM + '/formResponse', f).then(function () {
+      var t = Date.now();
+      sset(KEY, JSON.stringify({ t: t }));
+      st.textContent = 'Trimis la ' + hhmm(t) + '. Verific în foaie…';
+      return pollSheet(function () { return lastRow && (before === null || lastRow.caf > before); }).then(function (ok) {
+        if (ok && before !== null) st.textContent = '✓ Înregistrat la ' + hhmm(t) + '. Ai ' + lastRow.caf + (lastRow.caf === 1 ? ' cafea' : ' cafele') + ' în foaie.';
+        else if (ok) st.textContent = '✓ Trimis la ' + hhmm(t) + '. Soldul de mai jos s-a actualizat.';
+        else st.textContent = 'Trimis la ' + hhmm(t) + ', dar nu s-a văzut încă în foaie. Apasă „Actualizează" peste câteva secunde. Dacă tot nu apare, folosește linkul „Nu a mers?" de mai jos.';
+      });
+    }, function () {
+      st.textContent = '✗ Nu s-a trimis. Verifică internetul și apasă din nou.';
+    }).then(function () { sending = false; btn.disabled = false; });
   });
 
   // ---- Pornire / schimbare nume ----
@@ -527,14 +576,13 @@ main[hidden] { display: none; }
     NAME = n;
     $('who').textContent = n;
     var q = (isFix(n) ? COFFEE_ENTRY : COFFEE_OCC) + '=' + encodeURIComponent(n);
-    btn.href = COFFEE_FORM + '/formResponse?' + q + '&submit=Submit';
     $('fallback-link').href = COFFEE_FORM + '/viewform?usp=pp_url&' + q;
     input.value = ''; refreshPay();
     var last = jget(KEY);
     st.textContent = (last && sameDay(last.t, Date.now()))
       ? 'Ultima apăsare de pe acest telefon: ' + hhmm(last.t) + '. Nu poți ști de aici dacă s-a înregistrat, vezi confirmarea Google.'
       : 'Apasă butonul după ce ai băut cafeaua.';
-    sheetRest = null; sNum.textContent = '…'; sNote.textContent = 'Se citește foaia…';
+    sheetRest = null; lastRow = null; sNum.textContent = '…'; sNote.textContent = 'Se citește foaia…';
     pickEl.hidden = true; appEl.hidden = false;
     window.scrollTo(0, 0);
     loadSheet(false);
